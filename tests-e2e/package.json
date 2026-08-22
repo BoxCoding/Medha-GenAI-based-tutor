@@ -1,0 +1,14 @@
+{
+  "name": "medha-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser end-to-end and accessibility tests for Medhā.",
+  "scripts": {
+    "test": "playwright test",
+    "install-browser": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.49.0"
+  }
+}

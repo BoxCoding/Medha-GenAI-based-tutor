@@ -12,7 +12,9 @@
   --accent: #047857;        /* emerald — primary actions */
   --accent-strong: #059669;
   --accent-ink: #ffffff;
-  --gold: #a16207;          /* mastery highlights, readable on white */
+  /* Mastery highlights. Dark enough to clear WCAG AA (4.5:1) at 12px on
+     --bg-soft, which is where the smallest gold text (badges) sits. */
+  --gold: #8a5206;
   --danger: #dc2626;
   --info: #0369a1;
   --danger-ink: #ffffff;

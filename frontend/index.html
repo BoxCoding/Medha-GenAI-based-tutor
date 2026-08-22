@@ -38,7 +38,7 @@
           <button id="tab-login" class="auth-tab active" role="tab" aria-selected="true">Sign in</button>
           <button id="tab-register" class="auth-tab" role="tab" aria-selected="false">Create account</button>
         </div>
-        <form id="login-form">
+        <form id="login-form" method="dialog">
           <div class="field">
             <label for="l-email">Email</label>
             <input id="l-email" type="email" required maxlength="120" autocomplete="email" />
@@ -49,7 +49,7 @@
           </div>
           <button type="submit" class="btn btn-primary">Sign in</button>
         </form>
-        <form id="register-form" hidden>
+        <form id="register-form" method="dialog" hidden>
           <div class="field">
             <label for="r-name">Your name</label>
             <input id="r-name" type="text" required maxlength="60" autocomplete="name" />
@@ -75,18 +75,18 @@
         <p class="muted">Tell Medhā what you want to learn. It will map the concepts,
           estimate your starting knowledge, and adapt everything — lessons, quizzes,
           reviews — as your mastery evolves.</p>
-        <form id="onboard-form">
+        <form id="onboard-form" method="dialog">
           <div class="field">
             <label for="f-name">Your name</label>
-            <input id="f-name" name="name" type="text" required maxlength="60" autocomplete="name" placeholder="e.g. Vishal" />
+            <input id="f-name" type="text" required maxlength="60" autocomplete="name" placeholder="e.g. Vishal" />
           </div>
           <div class="field">
             <label for="f-topic">What do you want to learn?</label>
-            <input id="f-topic" name="topic" type="text" required maxlength="120" placeholder="e.g. Machine Learning, Sanskrit Grammar, Options Trading" />
+            <input id="f-topic" type="text" required maxlength="120" placeholder="e.g. Machine Learning, Sanskrit Grammar, Options Trading" />
           </div>
           <div class="field">
             <label for="f-level">Your current level</label>
-            <select id="f-level" name="level">
+            <select id="f-level">
               <option value="beginner" selected>Beginner — new to this</option>
               <option value="intermediate">Intermediate — know the basics</option>
               <option value="advanced">Advanced — filling gaps</option>
@@ -94,7 +94,7 @@
           </div>
           <div class="field">
             <label for="f-goal">Goal <span class="muted">(optional)</span></label>
-            <input id="f-goal" name="goal" type="text" maxlength="300" placeholder="e.g. crack an interview next month" />
+            <input id="f-goal" type="text" maxlength="300" placeholder="e.g. crack an interview next month" />
           </div>
           <button type="submit" class="btn btn-primary" id="onboard-submit">Build my learning path</button>
         </form>
@@ -161,7 +161,7 @@
           <h3>Teach it back <span class="badge">Feynman mode</span></h3>
           <p class="muted">Explain this concept in your own words — Medhā grades your
             explanation, and a good one counts as strong mastery evidence.</p>
-          <form id="teachback-form">
+          <form id="teachback-form" method="dialog">
             <label for="teachback-input" class="sr-only">Your explanation</label>
             <textarea id="teachback-input" rows="4" minlength="20" maxlength="2000" required
               placeholder="Imagine explaining it to a curious 12-year-old…"></textarea>
@@ -194,7 +194,7 @@
           <span id="quiz-difficulty" class="badge"></span>
         </div>
         <p id="quiz-progress" class="muted" aria-live="polite"></p>
-        <form id="quiz-form"></form>
+        <form id="quiz-form" method="dialog"></form>
         <div id="quiz-result" aria-live="polite"></div>
       </div>
     </section>
@@ -206,7 +206,7 @@
         <button id="tutor-close" class="btn btn-ghost" aria-label="Close tutor panel">✕</button>
       </div>
       <div id="tutor-log" class="tutor-log" role="log" aria-live="polite"></div>
-      <form id="tutor-form" class="tutor-form">
+      <form id="tutor-form" method="dialog" class="tutor-form">
         <label for="tutor-input" class="sr-only">Your question</label>
         <textarea id="tutor-input" rows="2" maxlength="1000" required
           placeholder="Ask a doubt — Medhā knows your mastery map…"></textarea>

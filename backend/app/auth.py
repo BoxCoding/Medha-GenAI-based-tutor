@@ -108,5 +108,21 @@ async def logout(
 async def me(
     medha_session: str | None = Cookie(default=None, alias=COOKIE_NAME),
 ) -> dict:
+    """Strict variant: 401 when unauthenticated (used by API clients)."""
     user = await current_user(medha_session)
     return {"user": _public(user)}
+
+
+@router.get("/session")
+async def session(
+    medha_session: str | None = Cookie(default=None, alias=COOKIE_NAME),
+) -> dict:
+    """Boot probe for the browser: always 200, `user` is null when signed out.
+
+    Being signed out is a normal state, not an error — answering 200 keeps a
+    first-time visitor's console completely clean instead of logging a 401.
+    """
+    if not medha_session:
+        return {"user": None}
+    user = store.get_session_user(_hash_token(medha_session))
+    return {"user": _public(user) if user else None}

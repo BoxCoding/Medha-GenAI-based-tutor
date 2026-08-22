@@ -13,3 +13,8 @@ __pycache__/
 medha.db
 medha.db-wal
 medha.db-shm
+
+# E2E test artifacts
+tests-e2e/node_modules/
+tests-e2e/test-results/
+tests-e2e/playwright-report/

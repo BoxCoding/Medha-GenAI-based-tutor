@@ -4,13 +4,15 @@
 import { api, setUnauthorizedHandler } from "./api.js";
 import { $, show } from "./dom.js";
 import { state } from "./state.js";
-import { stopTracking } from "./behavior.js";
+import { abandonTracking, stopTracking } from "./behavior.js";
 import { loadReturningLearners } from "./onboarding.js";
 
 export function enterAuthView() {
   state.user = null;
   state.learner = null;
-  stopTracking();
+  // The session may already be invalid here, so drop telemetry rather than
+  // flushing it into a guaranteed 401.
+  abandonTracking();
   $("#switch-learner").hidden = true;
   $("#logout-btn").hidden = true;
   $("#tutor-open").hidden = true;
@@ -80,8 +82,11 @@ async function submitRegister(event) {
 
 export async function restoreSession() {
   try {
-    const data = await api("/auth/me");
-    enterApp(data.user);
+    // /auth/session answers 200 with user:null when signed out, so a
+    // first-time visitor's console stays free of 401 noise.
+    const { user } = await api("/auth/session");
+    if (user) enterApp(user);
+    else enterAuthView();
   } catch {
     enterAuthView();
   }
@@ -94,6 +99,9 @@ export function initAuth() {
   $("#login-form").addEventListener("submit", submitLogin);
   $("#register-form").addEventListener("submit", submitRegister);
   $("#logout-btn").addEventListener("click", async () => {
+    // Flush telemetry and WAIT for it before clearing the session —
+    // otherwise the final behavior POST races logout and 401s.
+    await stopTracking();
     try {
       await api("/auth/logout", { method: "POST" });
     } catch {

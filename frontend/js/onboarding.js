@@ -75,9 +75,9 @@ async function submitOnboarding(event) {
 
 export function initOnboarding() {
   $("#onboard-form").addEventListener("submit", submitOnboarding);
-  $("#switch-learner").addEventListener("click", () => {
+  $("#switch-learner").addEventListener("click", async () => {
     state.learner = null;
-    stopTracking();
+    await stopTracking();
     $("#switch-learner").hidden = true;
     $("#tutor-open").hidden = true;
     $("#tutor-panel").hidden = true;

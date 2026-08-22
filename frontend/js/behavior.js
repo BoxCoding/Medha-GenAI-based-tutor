@@ -179,12 +179,26 @@ export function startTracking(id) {
   }, FLUSH_INTERVAL_MS);
 }
 
-export function stopTracking() {
+/** Stop tracking, flushing what we have while the session is still valid.
+ *  Await this before signing out, or the final POST 401s after the cookie
+ *  is cleared. */
+export async function stopTracking() {
   if (flushTimer) clearInterval(flushTimer);
   flushTimer = null;
   stopCamera();
   snapshotFocus();
-  flush();
+  await flush();
+  learnerId = null;
+  queue = [];
+}
+
+/** Drop tracking immediately without touching the network — for when the
+ *  session is already gone (an expired-session 401), where flushing could
+ *  only produce another failed request. */
+export function abandonTracking() {
+  if (flushTimer) clearInterval(flushTimer);
+  flushTimer = null;
+  stopCamera();
   learnerId = null;
   queue = [];
 }

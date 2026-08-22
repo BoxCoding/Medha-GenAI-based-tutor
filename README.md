@@ -116,8 +116,8 @@ pytest                        # 25+ tests, fully offline & deterministic
 | **Code quality** (high) | Modular layers (config / store / bkt / adaptive / content / auth / routers; frontend split into app / speech / behavior / mindmap modules), type hints, docstrings, parameterized SQL only, single-responsibility files. |
 | **Security** (medium) | Real authentication (PBKDF2 210k iterations, hashed session tokens, httpOnly SameSite cookies); per-user data isolation on every query; identical errors for unknown-email vs wrong-password; prompt-injection guard on teach-back grading; API key server-side only; Pydantic validation everywhere; server-side quiz grading; rate limiting; security headers; DOM-escaped rendering of all LLM output; webcam frames never persisted. |
 | **Efficiency** (medium) | Lesson cache per (concept, mastery band) and mind-map cache per concept — repeat views cost zero LLM calls; engagement checks reuse stored signals instead of new calls; async LLM I/O; SQLite WAL + indexes; batched behavior telemetry (one request per ~20s); zero-build vanilla frontend. |
-| **Testing** (low) | 41 `pytest` tests: BKT math properties, adaptive policy, auth lifecycle, **user-isolation attack tests**, and end-to-end adaptive-flow tests — all offline and deterministic. |
-| **Accessibility** (low) | Voice narration (Indian en-IN voices, male/female, medium pace), semantic HTML, skip link, ARIA live regions & progressbars, keyboard-visible focus, `prefers-reduced-motion`, light/dark themes, WCAG-AA contrast. |
+| **Testing** (low) | 54 `pytest` tests (BKT math properties, adaptive policy, auth lifecycle, **user-isolation attack tests**, API flows) plus a 6-test **Playwright** browser suite covering the real learner journey — all offline and deterministic. |
+| **Accessibility** (low) | Voice narration with read-along highlighting (Indian en-IN voices, male/female), semantic HTML, skip link, ARIA live regions & progressbars, keyboard-visible focus, `prefers-reduced-motion`, light/dark themes — and WCAG AA contrast **verified automatically** by axe-core in CI, not just claimed. |
 
 ## Project structure
 
@@ -149,7 +149,8 @@ medha/
 │   └── js/                      # api, dom, state, theme, markdown, viz,
 │                                #   auth, onboarding, dashboard, lesson,
 │                                #   quiz, tutor, speech, behavior, mindmap
-├── tests/                       # bkt math, adaptive policy, auth/isolation, e2e flows
+├── tests/                       # bkt math, adaptive policy, auth/isolation, API flows
+├── tests-e2e/                   # Playwright browser journey + axe accessibility scan
 ├── api/index.py                 # Vercel serverless entry point
 ├── ruff.toml · pytest.ini       # backend lint + test configuration
 ├── eslint.config.mjs            # frontend lint configuration
@@ -159,8 +160,20 @@ medha/
 └── .env.example
 ```
 
-Quality gates: `ruff check backend tests api` and `npx eslint frontend` both pass
-clean; `pytest` runs 52 deterministic offline tests. CI enforces all three.
+Quality gates, all enforced in CI:
+
+```bash
+ruff check backend tests api          # Python lint — clean
+npx eslint frontend                   # JS lint — clean
+pytest -q                             # 54 deterministic offline tests
+cd tests-e2e && npx playwright test    # 6 browser tests (journey + accessibility)
+```
+
+The browser suite runs the real app with `MEDHA_OFFLINE=1` (deterministic, no
+API cost) and asserts three things unit tests cannot: that the SPA boots and
+its primary navigation works, that a **full session produces zero console
+errors and zero failed requests**, and that onboarding, dashboard, and lesson
+carry **no serious or critical WCAG 2 AA violations** (axe-core).
 
 ## API surface
 
