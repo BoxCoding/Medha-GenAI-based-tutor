@@ -1,12 +1,13 @@
-[project]
-name = "medha"
-version = "1.0.0"
-description = "Medhā (मेधा) — Adaptive Learning Intelligence System: Bayesian knowledge tracing × Gemini"
-requires-python = ">=3.11"
+# Tool configuration only — deliberately NO [project] table.
+# Serverless Python builders treat a [project] table as "install this repo as a
+# package"; Medhā is an application deployed from source, and its dependencies
+# live in requirements.txt (runtime) / requirements-dev.txt (tests + lint).
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+# Conservative target: the deployed serverless runtime may be older than the
+# local interpreter, so lint must not push 3.11+ only syntax into the code.
+target-version = "py310"
 src = ["backend", "tests"]
 extend-exclude = [".venv"]
 

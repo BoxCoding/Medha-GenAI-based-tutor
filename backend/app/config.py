@@ -23,6 +23,19 @@ def _env_flag(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _default_database_path() -> Path:
+    """Where SQLite lives when MEDHA_DB is not set.
+
+    Serverless bundles are read-only except for /tmp, so writing beside the
+    source would fail at startup. Vercel and Lambda both advertise themselves
+    through environment variables — detect them and fall back to /tmp (which
+    is ephemeral: see deploy/DEPLOYMENT.md for persistent hosting).
+    """
+    if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        return Path("/tmp/medha.db")
+    return PROJECT_ROOT / "medha.db"
+
+
 @dataclass(frozen=True)
 class Settings:
     """Runtime settings resolved once at import time."""
@@ -32,7 +45,7 @@ class Settings:
         default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
     )
     database_path: Path = field(
-        default_factory=lambda: Path(os.getenv("MEDHA_DB", str(PROJECT_ROOT / "medha.db")))
+        default_factory=lambda: Path(os.getenv("MEDHA_DB") or _default_database_path())
     )
     host: str = field(default_factory=lambda: os.getenv("HOST", "127.0.0.1"))
     port: int = field(default_factory=lambda: int(os.getenv("PORT", "8098")))

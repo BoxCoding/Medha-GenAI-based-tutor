@@ -27,20 +27,43 @@ its strict defaults, no CORS, and the frontend needs **zero** configuration
 **`ImportError: attempted relative import with no known parent package`
 (could not import "main.py")** — Vercel found `main.py` as a top-level
 entrypoint, which means the project's **Root Directory is set to
-`medha/backend`** instead of `medha`. Two ways out:
+`medha/backend`** instead of `medha`. Fix it at Project → Settings →
+General → **Root Directory** → `medha` (or the repo root if `medha` *is* the
+repo), then redeploy. That makes [vercel.json](../vercel.json) take effect,
+deploying the API function **and** the static frontend together.
 
-1. *Recommended:* Project → Settings → General → **Root Directory** →
-   change to `medha` (or the repo root if `medha` is the repo). This makes
-   [vercel.json](../vercel.json) take effect, deploying the API function
-   **and** the static frontend together — the merged single-project setup.
-2. `backend/main.py` now also supports being imported top-level (its
-   imports fall back from `from .app import …` to `from app import …`),
-   and `backend/requirements.txt` exists for this layout — so a
-   backend-rooted project will boot after a redeploy. But note it serves
-   **only the API**: the frontend won't be deployed, so prefer option 1.
+**`FUNCTION_INVOCATION_FAILED` / every `/api/*` path returns 500** — including
+paths that should 404. A 500 on an unknown route means the function died
+during import or startup, before routing existed. Checklist:
 
-After changing the root directory, trigger a fresh deploy (Deployments →
-… → Redeploy) so the build re-runs with the new setting.
+1. **Is `backend/` in the bundle?** `api/index.py` imports `backend.main`, so
+   the build config carries `includeFiles: "backend/**"` and the entrypoint
+   puts the project root on `sys.path`. Both must survive edits to
+   `vercel.json` / `api/index.py`.
+2. **Python version.** The serverless runtime can be older than your laptop's.
+   The code therefore avoids 3.11-only syntax (`enum.StrEnum`,
+   `datetime.UTC`), and ruff is pinned to `target-version = "py310"` so lint
+   never reintroduces it. Check the project's Python version under Settings →
+   General if imports still fail.
+3. **Writable database path.** Serverless filesystems are read-only except
+   `/tmp`. When `MEDHA_DB` is unset, the app now detects Vercel/Lambda and
+   defaults to `/tmp/medha.db` on its own.
+4. **No `[project]` table in `pyproject.toml`.** Medhā is deployed from
+   source, not installed as a package; a `[project]` table can make the
+   builder attempt `pip install .` and fail. The file holds tool config only.
+
+**Read the actual error instead of guessing:** `/api/health` reports its own
+database status — `{"status": "degraded", "database_error": "…"}` — because
+startup failures are recorded rather than raised. For import-level failures
+(where even health cannot answer), open Vercel → Deployments → the deployment
+→ **Runtime Logs** / Functions tab for the Python traceback.
+
+**Every path redirects (302) to `vercel.com/sso-api`** — Deployment Protection
+is enabled, so anonymous visitors (judges!) hit a login wall and the frontend's
+API calls fail. Preview URLs (`…-git-<branch>-<team>.vercel.app`) have it on by
+default. Share the **production** URL, and if that is protected too, turn it
+off at Project → Settings → **Deployment Protection** → Disabled (or use
+Protection Bypass for Automation).
 
 ## Notes
 

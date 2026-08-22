@@ -25,13 +25,29 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname
 
 FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
 
+logger = logging.getLogger("medha")
+
+
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    init_db()
-    logging.getLogger("medha").info(
-        "Medhā started — LLM %s (model=%s)",
+async def lifespan(application: FastAPI):
+    """Prepare the database, recording (not raising) any failure.
+
+    A crash here would take down every route — including /api/health — and a
+    serverless platform would surface only an opaque invocation error. Instead
+    the failure is stored and reported by the health endpoint, so a broken
+    deployment can be diagnosed from its own API.
+    """
+    application.state.database_error = None
+    try:
+        init_db()
+    except Exception as exc:  # noqa: BLE001 — health must stay reachable
+        application.state.database_error = f"{type(exc).__name__}: {exc}"
+        logger.exception("Database initialization failed (path=%s)", settings.database_path)
+    logger.info(
+        "Medhā started — LLM %s (model=%s), db=%s",
         "ENABLED" if settings.llm_enabled else "OFFLINE FALLBACK",
         settings.gemini_model,
+        settings.database_path,
     )
     yield
 
@@ -85,11 +101,15 @@ async def guard(request: Request, call_next):
 
 
 @app.get("/api/health")
-async def health() -> dict:
+async def health(request: Request) -> dict:
+    """Liveness plus enough diagnostics to debug a deployment from outside."""
+    database_error = getattr(request.app.state, "database_error", None)
     return {
-        "status": "ok",
+        "status": "degraded" if database_error else "ok",
         "llm_enabled": settings.llm_enabled,
         "model": settings.gemini_model if settings.llm_enabled else None,
+        "database": "error" if database_error else "ok",
+        "database_error": database_error,
     }
 
 

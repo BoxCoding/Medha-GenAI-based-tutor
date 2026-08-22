@@ -1,12 +1,15 @@
 """Pydantic request/response models — every API input is validated here."""
 from __future__ import annotations
 
-from enum import StrEnum
+from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class Level(StrEnum):
+class Level(str, Enum):
+    """Self-reported starting level. `str` mixin keeps it JSON-friendly on
+    Python 3.10 runtimes, where `enum.StrEnum` does not exist yet."""
+
     beginner = "beginner"
     intermediate = "intermediate"
     advanced = "advanced"
