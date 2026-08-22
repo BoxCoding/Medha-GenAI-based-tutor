@@ -40,17 +40,24 @@ during import or startup, before routing existed. Checklist:
    the build config carries `includeFiles: "backend/**"` and the entrypoint
    puts the project root on `sys.path`. Both must survive edits to
    `vercel.json` / `api/index.py`.
-2. **Python version.** The serverless runtime can be older than your laptop's.
-   The code therefore avoids 3.11-only syntax (`enum.StrEnum`,
-   `datetime.UTC`), and ruff is pinned to `target-version = "py310"` so lint
-   never reintroduces it. Check the project's Python version under Settings →
-   General if imports still fail.
+2. **Python version.** Pinned to 3.12 by [.python-version](../.python-version).
+   The source additionally avoids 3.11-only syntax (`enum.StrEnum`,
+   `datetime.UTC`) and ruff targets `py310`, so the same code also runs on
+   older always-on hosts.
 3. **Writable database path.** Serverless filesystems are read-only except
-   `/tmp`. When `MEDHA_DB` is unset, the app now detects Vercel/Lambda and
+   `/tmp`. When `MEDHA_DB` is unset, the app detects Vercel/Lambda and
    defaults to `/tmp/medha.db` on its own.
-4. **No `[project]` table in `pyproject.toml`.** Medhā is deployed from
-   source, not installed as a package; a `[project]` table can make the
-   builder attempt `pip install .` and fail. The file holds tool config only.
+
+**Build fails: `uv lock` → `error: No 'project' table found in … pyproject.toml`**
+— Vercel's Python builder installs with `uv`, and **if a `pyproject.toml`
+exists at the deploy root it is preferred over `requirements.txt`** and must
+then contain a complete PEP 621 `[project]` table. Medhā deliberately ships
+**no** `pyproject.toml`: lint and test configuration live in
+[ruff.toml](../ruff.toml) and [pytest.ini](../pytest.ini), leaving
+`requirements.txt` as the single dependency source. If you reintroduce a
+`pyproject.toml`, either give it a full `[project]` table with `dependencies`
+(plus `[tool.uv] package = false`, since the app is deployed from source
+rather than installed) or keep tool config in the standalone files.
 
 **Read the actual error instead of guessing:** `/api/health` reports its own
 database status — `{"status": "degraded", "database_error": "…"}` — because

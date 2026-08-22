@@ -145,8 +145,9 @@ medha/
 │                                #   quiz, tutor, speech, behavior, mindmap
 ├── tests/                       # bkt math, adaptive policy, auth/isolation, e2e flows
 ├── api/index.py                 # Vercel serverless entry point
-├── pyproject.toml               # ruff (lint) + pytest configuration
+├── ruff.toml · pytest.ini       # backend lint + test configuration
 ├── eslint.config.mjs            # frontend lint configuration
+├── .python-version              # pinned runtime for reproducible deploys
 ├── .github/workflows/ci.yml    # CI: ruff + pytest on every push
 ├── requirements.txt             # runtime deps (requirements-dev.txt adds test/lint)
 └── .env.example
