@@ -14,7 +14,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Cookie, HTTPException, Response
 
@@ -39,7 +39,7 @@ def _hash_token(token: str) -> str:
 
 def _start_session(response: Response, user_id: int) -> None:
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.now(timezone.utc) + SESSION_TTL
+    expires_at = datetime.now(UTC) + SESSION_TTL
     store.create_session(_hash_token(token), user_id, expires_at.strftime("%Y-%m-%d %H:%M:%S"))
     response.set_cookie(
         COOKIE_NAME,

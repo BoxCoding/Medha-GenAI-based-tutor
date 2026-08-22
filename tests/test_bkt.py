@@ -1,6 +1,5 @@
 """Unit tests for the Bayesian Knowledge Tracing engine."""
 import pytest
-
 from backend.app import bkt
 
 

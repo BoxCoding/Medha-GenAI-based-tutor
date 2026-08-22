@@ -11,9 +11,8 @@ os.environ["MEDHA_OFFLINE"] = "1"
 os.environ["MEDHA_DB"] = os.path.join(tempfile.mkdtemp(), "medha_test.db")
 
 import pytest
-from fastapi.testclient import TestClient
-
 from backend.main import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture(scope="module")

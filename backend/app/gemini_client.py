@@ -3,7 +3,7 @@
 Design goals:
   * The API key lives only in this process (sent via header, never in URLs,
     never logged, never exposed to the frontend).
-  * Every caller must handle `LLMUnavailable` — the app degrades to
+  * Every caller must handle `LLMUnavailableError` — the app degrades to
     deterministic fallback content instead of breaking the learner's flow.
   * JSON responses are requested via `responseMimeType` and validated by the
     caller, so a malformed generation can never corrupt state.
@@ -23,7 +23,7 @@ logger = logging.getLogger("medha.gemini")
 _BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 
-class LLMUnavailable(Exception):
+class LLMUnavailableError(Exception):
     """Raised when Gemini cannot be reached or returns an unusable response."""
 
 
@@ -47,7 +47,7 @@ async def generate_json(
         return json.loads(raw)
     except json.JSONDecodeError as exc:
         logger.warning("Gemini returned non-JSON payload: %s", exc)
-        raise LLMUnavailable("model returned malformed JSON") from exc
+        raise LLMUnavailableError("model returned malformed JSON") from exc
 
 
 async def _generate(
@@ -58,7 +58,7 @@ async def _generate(
     image_mime: str = "image/jpeg",
 ) -> str:
     if not settings.llm_enabled:
-        raise LLMUnavailable("no API key configured or offline mode active")
+        raise LLMUnavailableError("no API key configured or offline mode active")
 
     parts: list[dict[str, Any]] = [{"text": prompt}]
     if image_base64:
@@ -80,19 +80,19 @@ async def _generate(
             response = await client.post(url, json=body, headers=headers)
     except httpx.HTTPError as exc:
         logger.warning("Gemini request failed: %s", type(exc).__name__)
-        raise LLMUnavailable("network error talking to Gemini") from exc
+        raise LLMUnavailableError("network error talking to Gemini") from exc
 
     if response.status_code != 200:
         logger.warning("Gemini returned HTTP %s", response.status_code)
-        raise LLMUnavailable(f"Gemini HTTP {response.status_code}")
+        raise LLMUnavailableError(f"Gemini HTTP {response.status_code}")
 
     try:
         payload = response.json()
         parts = payload["candidates"][0]["content"]["parts"]
         text = "".join(part.get("text", "") for part in parts).strip()
     except (KeyError, IndexError, ValueError) as exc:
-        raise LLMUnavailable("unexpected Gemini response shape") from exc
+        raise LLMUnavailableError("unexpected Gemini response shape") from exc
 
     if not text:
-        raise LLMUnavailable("empty Gemini response")
+        raise LLMUnavailableError("empty Gemini response")
     return text

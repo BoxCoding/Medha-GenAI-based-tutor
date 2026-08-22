@@ -1,12 +1,12 @@
 """Pydantic request/response models — every API input is validated here."""
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class Level(str, Enum):
+class Level(StrEnum):
     beginner = "beginner"
     intermediate = "intermediate"
     advanced = "advanced"

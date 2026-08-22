@@ -1,0 +1,38 @@
+[project]
+name = "medha"
+version = "1.0.0"
+description = "Medhā (मेधा) — Adaptive Learning Intelligence System: Bayesian knowledge tracing × Gemini"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["backend", "tests"]
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort (import ordering)
+    "B",   # bugbear
+    "UP",  # pyupgrade
+    "SIM", # simplify
+    "N",   # naming conventions
+]
+ignore = [
+    "B008", # function call in default arg — FastAPI's Depends()/Cookie() idiom
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests configure the environment before importing the app under test.
+"tests/*" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    # Upstream starlette/httpx transition notice (raised at fastapi import
+    # time, warning class lives in starlette) — not actionable here.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated.*",
+]

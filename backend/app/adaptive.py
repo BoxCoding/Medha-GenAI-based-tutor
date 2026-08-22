@@ -7,7 +7,7 @@ prerequisite reaches the unlock threshold.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from . import bkt
@@ -19,8 +19,8 @@ def effective_mastery(state: dict[str, Any]) -> float:
     days = 0.0
     if updated_at:
         try:
-            then = datetime.fromisoformat(str(updated_at)).replace(tzinfo=timezone.utc)
-            days = max(0.0, (datetime.now(timezone.utc) - then).total_seconds() / 86400)
+            then = datetime.fromisoformat(str(updated_at)).replace(tzinfo=UTC)
+            days = max(0.0, (datetime.now(UTC) - then).total_seconds() / 86400)
         except ValueError:
             days = 0.0
     return bkt.decayed_mastery(float(state["mastery"]), days)

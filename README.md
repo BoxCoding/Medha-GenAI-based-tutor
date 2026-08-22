@@ -119,23 +119,41 @@ pytest                        # 25+ tests, fully offline & deterministic
 ```
 medha/
 ├── backend/
-│   ├── main.py                  # FastAPI app, rate limiting, security headers
+│   ├── main.py                  # FastAPI app, CORS, rate limiting, security headers
 │   └── app/
 │       ├── config.py            # env-driven settings (.env)
-│       ├── database.py          # SQLite schema + connection management
-│       ├── store.py             # data-access layer (all SQL, parameterized)
+│       ├── database.py          # SQLite schema, migrations, connections
+│       ├── store/               # data-access layer by domain (all SQL, parameterized)
+│       │   ├── users.py         #   accounts + session tokens
+│       │   ├── learners.py      #   learner profiles, concepts, knowledge states
+│       │   ├── assessments.py   #   questions, attempts, answer history
+│       │   ├── behavior.py      #   engagement telemetry, pace signals, streaks
+│       │   └── content_cache.py #   cached lessons + mind maps
 │       ├── bkt.py               # Bayesian Knowledge Tracing + forgetting decay
-│       ├── adaptive.py          # next-best-activity policy, prerequisite gating
-│       ├── gemini_client.py     # async Gemini REST client (JSON mode, timeouts)
+│       ├── adaptive.py          # policy: recommendations, pace profile, difficulty
+│       ├── auth.py              # PBKDF2 + httpOnly cookie sessions
+│       ├── gemini_client.py     # async Gemini REST client (text + vision)
 │       ├── content_service.py   # prompts + strict validation of LLM output
 │       ├── fallback_content.py  # deterministic offline content
 │       ├── schemas.py           # Pydantic request models
-│       └── routers/             # learners, lessons, quizzes, tutor
-├── frontend/                    # zero-dependency SPA (semantic, accessible)
-├── tests/                       # bkt, adaptive policy, end-to-end API
-├── requirements.txt
+│       └── routers/             # learners, lessons, quizzes, tutor,
+│                                #   behavior, mindmap, teachback
+├── frontend/                    # zero-dependency ES-module SPA
+│   ├── index.html · styles.css · config.js
+│   └── js/                      # api, dom, state, theme, markdown, viz,
+│                                #   auth, onboarding, dashboard, lesson,
+│                                #   quiz, tutor, speech, behavior, mindmap
+├── tests/                       # bkt math, adaptive policy, auth/isolation, e2e flows
+├── api/index.py                 # Vercel serverless entry point
+├── pyproject.toml               # ruff (lint) + pytest configuration
+├── eslint.config.mjs            # frontend lint configuration
+├── .github/workflows/ci.yml    # CI: ruff + pytest on every push
+├── requirements.txt             # runtime deps (requirements-dev.txt adds test/lint)
 └── .env.example
 ```
+
+Quality gates: `ruff check backend tests api` and `npx eslint frontend` both pass
+clean; `pytest` runs 52 deterministic offline tests. CI enforces all three.
 
 ## API surface
 

@@ -28,7 +28,9 @@ class Settings:
     """Runtime settings resolved once at import time."""
 
     gemini_api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
-    gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite"))
+    gemini_model: str = field(
+        default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+    )
     database_path: Path = field(
         default_factory=lambda: Path(os.getenv("MEDHA_DB", str(PROJECT_ROOT / "medha.db")))
     )

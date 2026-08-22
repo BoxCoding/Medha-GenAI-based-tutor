@@ -54,7 +54,7 @@ async def generate_quiz(payload: QuizRequest, user: dict = Depends(current_user)
                 "options": q["options"],
                 "difficulty": q["difficulty"],
             }
-            for qid, q in zip(ids, questions)
+            for qid, q in zip(ids, questions, strict=True)
         ],
     }
 
@@ -118,7 +118,8 @@ async def submit_quiz(payload: QuizSubmission, user: dict = Depends(current_user
             }
         )
 
-    assert concept_id is not None and mastery is not None and mastery_before is not None
+    if concept_id is None or mastery is None or mastery_before is None:
+        raise HTTPException(status_code=400, detail="no answers were graded")
     store.update_state(
         payload.learner_id,
         concept_id,

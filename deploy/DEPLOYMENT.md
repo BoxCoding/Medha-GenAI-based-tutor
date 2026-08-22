@@ -22,6 +22,26 @@ its strict defaults, no CORS, and the frontend needs **zero** configuration
    - `https://<project>.vercel.app/api/health` → `{"status": "ok", "llm_enabled": true}`
    - Open the site, register, run one lesson + quiz end-to-end.
 
+## Troubleshooting
+
+**`ImportError: attempted relative import with no known parent package`
+(could not import "main.py")** — Vercel found `main.py` as a top-level
+entrypoint, which means the project's **Root Directory is set to
+`medha/backend`** instead of `medha`. Two ways out:
+
+1. *Recommended:* Project → Settings → General → **Root Directory** →
+   change to `medha` (or the repo root if `medha` is the repo). This makes
+   [vercel.json](../vercel.json) take effect, deploying the API function
+   **and** the static frontend together — the merged single-project setup.
+2. `backend/main.py` now also supports being imported top-level (its
+   imports fall back from `from .app import …` to `from app import …`),
+   and `backend/requirements.txt` exists for this layout — so a
+   backend-rooted project will boot after a redeploy. But note it serves
+   **only the API**: the frontend won't be deployed, so prefer option 1.
+
+After changing the root directory, trigger a fresh deploy (Deployments →
+… → Redeploy) so the build re-runs with the new setting.
+
 ## Notes
 
 - **SQLite is ephemeral on Vercel** (`/tmp` resets on cold starts): accounts

@@ -12,7 +12,7 @@ import re
 from typing import Any
 
 from . import fallback_content
-from .gemini_client import LLMUnavailable, generate_json, generate_text
+from .gemini_client import LLMUnavailableError, generate_json, generate_text
 
 logger = logging.getLogger("medha.content")
 
@@ -49,7 +49,7 @@ coherent progression."""
         raw = await generate_json(prompt)
         concepts = _validate_concept_map(raw)
         return concepts, "gemini"
-    except (LLMUnavailable, ValueError) as exc:
+    except (LLMUnavailableError, ValueError) as exc:
         logger.info("Concept map fallback for %r: %s", topic, exc)
         return fallback_content.concept_map(topic), "fallback"
 
@@ -162,9 +162,17 @@ async def build_lesson(
         else "(no recent mistakes recorded)"
     )
     band_guidance = {
-        "novice": "Assume no prior exposure. Lead with intuition and an analogy before any formalism.",
-        "developing": "The learner knows the basics. Focus on mechanics, a worked example, and one common trap.",
-        "proficient": "The learner is nearly at mastery. Go deep: edge cases, trade-offs, and a challenge exercise.",
+        "novice": (
+            "Assume no prior exposure. Lead with intuition and an analogy before any formalism."
+        ),
+        "developing": (
+            "The learner knows the basics. Focus on mechanics, a worked example, "
+            "and one common trap."
+        ),
+        "proficient": (
+            "The learner is nearly at mastery. Go deep: edge cases, trade-offs, "
+            "and a challenge exercise."
+        ),
     }[band]
     prompt = f"""Write a personalized micro-lesson in markdown, following the
 progression Concept → Visual → Example → Story → Takeaway.
@@ -173,7 +181,7 @@ Topic: {topic}
 Concept: {concept['name']} — {concept['description']}
 Learner level: {level}; current mastery band: {band}.
 Guidance: {band_guidance}
-{_pace_hint(profile)}{_engagement_hint(engagement)}Questions the learner recently got wrong on this concept:
+{_pace_hint(profile)}{_engagement_hint(engagement)}Recently missed questions on this concept:
 {mistakes_text}
 
 Follow EXACTLY this structure (use ## headings with these names):
@@ -219,7 +227,7 @@ Keep it under 600 words. Do not include a quiz — Medhā generates that separat
     try:
         text = await generate_text(prompt)
         return text, "gemini"
-    except LLMUnavailable as exc:
+    except LLMUnavailableError as exc:
         logger.info("Lesson fallback for %r: %s", concept["name"], exc)
         return (
             fallback_content.lesson(concept["name"], concept["description"], band, topic),
@@ -250,7 +258,7 @@ Vary the position of the correct answer across questions."""
         raw = await generate_json(prompt)
         questions = _validate_quiz(raw, difficulty, count)
         return questions, "gemini"
-    except (LLMUnavailable, ValueError) as exc:
+    except (LLMUnavailableError, ValueError) as exc:
         logger.info("Quiz fallback for %r: %s", concept["name"], exc)
         return (
             fallback_content.quiz(concept["name"], concept["description"], difficulty, count),
@@ -317,7 +325,7 @@ Requirements:
     try:
         raw = await generate_json(prompt)
         return _validate_mindmap(raw, concept["name"]), "gemini"
-    except (LLMUnavailable, ValueError) as exc:
+    except (LLMUnavailableError, ValueError) as exc:
         logger.info("Mindmap fallback for %r: %s", concept["name"], exc)
         return fallback_content.mindmap(concept["name"], concept["description"], topic), "fallback"
 
@@ -368,9 +376,13 @@ memorized jargon without meaning."""
     try:
         raw = await generate_json(prompt)
         return _validate_teachback(raw), "gemini"
-    except (LLMUnavailable, ValueError) as exc:
+    except (LLMUnavailableError, ValueError) as exc:
         logger.info("Teachback fallback: %s", exc)
         return fallback_content.teachback_grade(explanation, concept["description"]), "fallback"
+
+
+def _clean_phrase_list(raw: dict[str, Any], key: str, cap: int) -> list[str]:
+    return [str(x).strip()[:120] for x in raw.get(key, []) if str(x).strip()][:cap]
 
 
 def _validate_teachback(raw: Any) -> dict[str, Any]:
@@ -379,13 +391,10 @@ def _validate_teachback(raw: Any) -> dict[str, Any]:
     score = raw.get("score")
     if not isinstance(score, (int, float)) or not 0 <= score <= 100:
         raise ValueError("invalid score")
-    clean_list = lambda key, cap: [
-        str(x).strip()[:120] for x in raw.get(key, []) if str(x).strip()
-    ][:cap]
     return {
         "score": int(score),
-        "strengths": clean_list("strengths", 3),
-        "gaps": clean_list("gaps", 3),
+        "strengths": _clean_phrase_list(raw, "strengths", 3),
+        "gaps": _clean_phrase_list(raw, "gaps", 3),
         "tip": str(raw.get("tip", "")).strip()[:300] or "Keep practicing!",
     }
 
@@ -411,7 +420,7 @@ If no face is clearly visible, use label "neutral" with confidence 0."""
         confidence = raw.get("confidence")
         confidence = float(confidence) if isinstance(confidence, (int, float)) else 0.0
         return {"label": label, "confidence": max(0.0, min(1.0, confidence))}, "gemini"
-    except (LLMUnavailable, ValueError) as exc:
+    except (LLMUnavailableError, ValueError) as exc:
         logger.info("Expression analysis fallback: %s", exc)
         return {"label": "neutral", "confidence": 0.0}, "fallback"
 
@@ -430,6 +439,6 @@ Learner's question: {message}"""
     try:
         text = await generate_text(prompt, system=_TUTOR_SYSTEM)
         return text, "gemini"
-    except LLMUnavailable as exc:
+    except LLMUnavailableError as exc:
         logger.info("Tutor fallback: %s", exc)
         return fallback_content.tutor_reply(message, topic), "fallback"
