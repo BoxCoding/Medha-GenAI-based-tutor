@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medhā — Adaptive Learning Intelligence</title>
+  <meta name="description" content="Medhā tracks your evolving knowledge state and adapts every lesson, quiz, and review to you." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪷</text></svg>" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">🪷</span>
+      <div>
+        <h1>Medhā <span class="devanagari" lang="sa">मेधा</span></h1>
+        <p class="tagline">The intellect that adapts to how you learn</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="llm-badge" class="badge" role="status">checking…</span>
+      <button id="theme-toggle" class="btn btn-ghost" aria-label="Switch to dark theme" aria-pressed="false">🌙</button>
+      <button id="switch-learner" class="btn btn-ghost" hidden>Switch learner</button>
+      <button id="logout-btn" class="btn btn-ghost" hidden>Sign out</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ============ Sign in / Register ============ -->
+    <section id="view-auth" class="view" hidden aria-labelledby="auth-title">
+      <div class="card card-center">
+        <h2 id="auth-title">Welcome to Medhā</h2>
+        <p class="muted">Sign in to continue your learning journey — your progress,
+          mastery model, and preferences are private to your account.</p>
+        <div class="auth-tabs" role="tablist">
+          <button id="tab-login" class="auth-tab active" role="tab" aria-selected="true">Sign in</button>
+          <button id="tab-register" class="auth-tab" role="tab" aria-selected="false">Create account</button>
+        </div>
+        <form id="login-form">
+          <div class="field">
+            <label for="l-email">Email</label>
+            <input id="l-email" type="email" required maxlength="120" autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="l-password">Password</label>
+            <input id="l-password" type="password" required minlength="8" maxlength="128" autocomplete="current-password" />
+          </div>
+          <button type="submit" class="btn btn-primary">Sign in</button>
+        </form>
+        <form id="register-form" hidden>
+          <div class="field">
+            <label for="r-name">Your name</label>
+            <input id="r-name" type="text" required maxlength="60" autocomplete="name" />
+          </div>
+          <div class="field">
+            <label for="r-email">Email</label>
+            <input id="r-email" type="email" required maxlength="120" autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="r-password">Password <span class="muted">(min 8 characters)</span></label>
+            <input id="r-password" type="password" required minlength="8" maxlength="128" autocomplete="new-password" />
+          </div>
+          <button type="submit" class="btn btn-primary">Create account</button>
+        </form>
+        <p id="auth-error" class="form-error" role="alert" hidden></p>
+      </div>
+    </section>
+
+    <!-- ============ Onboarding ============ -->
+    <section id="view-onboard" class="view" aria-labelledby="onboard-title">
+      <div class="card card-center">
+        <h2 id="onboard-title">Begin your learning journey</h2>
+        <p class="muted">Tell Medhā what you want to learn. It will map the concepts,
+          estimate your starting knowledge, and adapt everything — lessons, quizzes,
+          reviews — as your mastery evolves.</p>
+        <form id="onboard-form">
+          <div class="field">
+            <label for="f-name">Your name</label>
+            <input id="f-name" name="name" type="text" required maxlength="60" autocomplete="name" placeholder="e.g. Vishal" />
+          </div>
+          <div class="field">
+            <label for="f-topic">What do you want to learn?</label>
+            <input id="f-topic" name="topic" type="text" required maxlength="120" placeholder="e.g. Machine Learning, Sanskrit Grammar, Options Trading" />
+          </div>
+          <div class="field">
+            <label for="f-level">Your current level</label>
+            <select id="f-level" name="level">
+              <option value="beginner" selected>Beginner — new to this</option>
+              <option value="intermediate">Intermediate — know the basics</option>
+              <option value="advanced">Advanced — filling gaps</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-goal">Goal <span class="muted">(optional)</span></label>
+            <input id="f-goal" name="goal" type="text" maxlength="300" placeholder="e.g. crack an interview next month" />
+          </div>
+          <button type="submit" class="btn btn-primary" id="onboard-submit">Build my learning path</button>
+        </form>
+        <div id="returning" hidden>
+          <h3 class="divider-label">Or continue as</h3>
+          <div id="learner-list" class="chip-row"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Dashboard ============ -->
+    <section id="view-dashboard" class="view" hidden aria-labelledby="dash-title">
+      <div class="dash-head">
+        <h2 id="dash-title">Your knowledge state</h2>
+        <div class="summary-tiles" id="summary-tiles"></div>
+        <p id="profile-note" class="muted profile-note" aria-live="polite"></p>
+      </div>
+      <div id="recommendation" class="card reco-card"></div>
+
+      <div class="card attention-card">
+        <div class="attention-head">
+          <h3>Attention &amp; engagement</h3>
+          <div class="attention-controls">
+            <button id="camera-toggle" class="btn btn-ghost" aria-pressed="false">📷 Enable camera coaching</button>
+          </div>
+        </div>
+        <p class="muted camera-note">Optional: with your permission, Medhā glances at your webcam
+          every ~45s and asks Gemini to read your engagement (focused / confused / bored…).
+          Frames are analyzed instantly and never stored — only the label is kept.</p>
+        <div id="engagement-tiles" class="summary-tiles"></div>
+        <video id="camera-video" playsinline muted hidden aria-hidden="true"></video>
+        <canvas id="camera-canvas" hidden aria-hidden="true"></canvas>
+      </div>
+
+      <h3>Concept map</h3>
+      <ul id="concept-list" class="concept-list"></ul>
+      <details class="card history-card">
+        <summary>Recent activity</summary>
+        <ul id="history-list" class="history-list"></ul>
+      </details>
+    </section>
+
+    <!-- ============ Lesson ============ -->
+    <section id="view-lesson" class="view" hidden aria-labelledby="lesson-title">
+      <button class="btn btn-ghost back-btn" data-back>← Back to dashboard</button>
+      <div class="card">
+        <div class="lesson-head">
+          <h2 id="lesson-title"></h2>
+          <span id="lesson-band" class="badge"></span>
+        </div>
+        <div class="audio-bar" role="group" aria-label="Audio narration controls">
+          <button id="tts-play" class="btn btn-ghost">🔊 Listen</button>
+          <button id="tts-stop" class="btn btn-ghost" hidden>⏹ Stop</button>
+          <label for="tts-voice" class="sr-only">Narration voice</label>
+          <select id="tts-voice" class="voice-select" aria-label="Narration voice"></select>
+        </div>
+        <div id="lesson-content" class="prose" aria-live="polite"></div>
+        <div class="lesson-actions">
+          <button id="start-quiz" class="btn btn-primary">Take the adaptive quiz →</button>
+          <button id="open-mindmap" class="btn btn-ghost">🧠 Mind map</button>
+        </div>
+
+        <div class="teachback">
+          <h3>Teach it back <span class="badge">Feynman mode</span></h3>
+          <p class="muted">Explain this concept in your own words — Medhā grades your
+            explanation, and a good one counts as strong mastery evidence.</p>
+          <form id="teachback-form">
+            <label for="teachback-input" class="sr-only">Your explanation</label>
+            <textarea id="teachback-input" rows="4" minlength="20" maxlength="2000" required
+              placeholder="Imagine explaining it to a curious 12-year-old…"></textarea>
+            <button type="submit" class="btn btn-primary">Grade my explanation</button>
+          </form>
+          <div id="teachback-result" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Mind map ============ -->
+    <section id="view-mindmap" class="view" hidden aria-labelledby="mindmap-title">
+      <button class="btn btn-ghost back-btn" data-back-lesson>← Back to lesson</button>
+      <div class="card">
+        <div class="lesson-head">
+          <h2 id="mindmap-title">Mind map</h2>
+          <span id="mindmap-source" class="badge"></span>
+        </div>
+        <div id="mindmap-container" class="mindmap-container" role="img"></div>
+        <ul id="mindmap-legend" class="mindmap-legend"></ul>
+      </div>
+    </section>
+
+    <!-- ============ Quiz ============ -->
+    <section id="view-quiz" class="view" hidden aria-labelledby="quiz-title">
+      <button class="btn btn-ghost back-btn" data-back>← Back to dashboard</button>
+      <div class="card">
+        <div class="lesson-head">
+          <h2 id="quiz-title">Adaptive quiz</h2>
+          <span id="quiz-difficulty" class="badge"></span>
+        </div>
+        <p id="quiz-progress" class="muted" aria-live="polite"></p>
+        <form id="quiz-form"></form>
+        <div id="quiz-result" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- ============ Tutor ============ -->
+    <aside id="tutor-panel" class="tutor-panel" hidden aria-labelledby="tutor-title">
+      <div class="tutor-head">
+        <h2 id="tutor-title">Ask Medhā</h2>
+        <button id="tutor-close" class="btn btn-ghost" aria-label="Close tutor panel">✕</button>
+      </div>
+      <div id="tutor-log" class="tutor-log" role="log" aria-live="polite"></div>
+      <form id="tutor-form" class="tutor-form">
+        <label for="tutor-input" class="sr-only">Your question</label>
+        <textarea id="tutor-input" rows="2" maxlength="1000" required
+          placeholder="Ask a doubt — Medhā knows your mastery map…"></textarea>
+        <button type="submit" class="btn btn-primary">Ask</button>
+      </form>
+    </aside>
+    <button id="tutor-open" class="tutor-fab" hidden aria-label="Open tutor chat">💬 Tutor</button>
+
+    <div id="loader" class="loader" hidden role="status">
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="loader-text">Working…</p>
+    </div>
+    <div id="toast" class="toast" role="alert" hidden></div>
+  </main>
+
+  <footer class="footer">
+    <p>Medhā · Bayesian Knowledge Tracing × Gemini · Built for PromptWars (Google for Developers · Build with AI)</p>
+  </footer>
+
+  <script src="viz.js"></script>
+  <script src="app.js"></script>
+  <script src="speech.js"></script>
+  <script src="behavior.js"></script>
+  <script src="mindmap.js"></script>
+</body>
+</html>
