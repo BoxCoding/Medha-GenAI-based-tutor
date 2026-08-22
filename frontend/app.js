@@ -4,7 +4,8 @@
  */
 "use strict";
 
-const API = "/api";
+const API_BASE = window.MEDHA_API_BASE || "";
+const API = API_BASE + "/api";
 
 const state = {
   user: null,
@@ -42,7 +43,9 @@ function toast(message) {
 async function api(path, options = {}) {
   const response = await fetch(API + path, {
     headers: { "Content-Type": "application/json" },
-    credentials: "same-origin",
+    // Cross-origin backend (split deployment) needs "include" for the
+    // session cookie; same-origin keeps the tighter default.
+    credentials: API_BASE ? "include" : "same-origin",
     ...options,
   });
   if (response.status === 401 && !path.startsWith("/auth")) {

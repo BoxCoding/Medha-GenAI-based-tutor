@@ -102,7 +102,8 @@
     snapshotFocus();
     if (learnerId && queue.length && navigator.sendBeacon) {
       const payload = JSON.stringify({ learner_id: learnerId, events: queue.splice(0, 20) });
-      navigator.sendBeacon("/api/behavior/events", new Blob([payload], { type: "application/json" }));
+      const base = window.MEDHA_API_BASE || "";
+      navigator.sendBeacon(base + "/api/behavior/events", new Blob([payload], { type: "application/json" }));
     }
   });
 

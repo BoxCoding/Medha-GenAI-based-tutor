@@ -19,6 +19,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Cookie, HTTPException, Response
 
 from . import store
+from .config import settings
 from .schemas import LoginRequest, RegisterRequest
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -45,7 +46,8 @@ def _start_session(response: Response, user_id: int) -> None:
         token,
         max_age=int(SESSION_TTL.total_seconds()),
         httponly=True,
-        samesite="lax",
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
     )
 
 

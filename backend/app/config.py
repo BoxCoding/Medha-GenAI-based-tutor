@@ -39,6 +39,22 @@ class Settings:
     llm_timeout_seconds: float = field(
         default_factory=lambda: float(os.getenv("LLM_TIMEOUT", "40"))
     )
+    # Split deployment (frontend on a different origin, e.g. Vercel):
+    # comma-separated list of origins allowed to call the API with credentials.
+    # Empty = same-origin deployment, no CORS headers emitted.
+    allowed_origins: tuple[str, ...] = field(
+        default_factory=lambda: tuple(
+            origin.strip().rstrip("/")
+            for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
+            if origin.strip()
+        )
+    )
+    # Cross-site cookies require Secure + SameSite=None; local dev keeps
+    # the stricter Lax default over plain http.
+    cookie_secure: bool = field(default_factory=lambda: _env_flag("COOKIE_SECURE"))
+    cookie_samesite: str = field(
+        default_factory=lambda: os.getenv("COOKIE_SAMESITE", "lax").lower()
+    )
 
     @property
     def llm_enabled(self) -> bool:

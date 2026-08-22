@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -41,6 +42,18 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Split deployment (frontend hosted on another origin, e.g. Vercel):
+# emit CORS headers only for the explicitly allowed origins, with
+# credentials so the httpOnly session cookie flows.
+if settings.allowed_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(settings.allowed_origins),
+        allow_credentials=True,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
+    )
 
 # Simple in-memory sliding-window rate limiter (per client IP).
 _RATE_LIMIT = 120         # requests (behavior telemetry adds background chatter)
@@ -89,5 +102,8 @@ app.include_router(behavior.router)
 app.include_router(mindmap.router)
 app.include_router(teachback.router)
 
-# Static frontend last, so /api routes take precedence.
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+# Static frontend last, so /api routes take precedence. On Vercel the CDN
+# serves the frontend directly and the serverless bundle may not contain
+# this directory — skip the mount rather than crash on import.
+if FRONTEND_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
