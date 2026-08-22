@@ -7,11 +7,13 @@ import { $, loader, show, toast } from "./dom.js";
 import { state } from "./state.js";
 import { applyProgress } from "./dashboard.js";
 import { startTracking, stopTracking } from "./behavior.js";
+import { resetTutorThread } from "./tutor.js";
 
 function enterLearnerView() {
   show("view-dashboard");
   $("#switch-learner").hidden = false;
   $("#tutor-open").hidden = false;
+  resetTutorThread();
 }
 
 export async function loadReturningLearners() {

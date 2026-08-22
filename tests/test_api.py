@@ -153,6 +153,24 @@ def test_tutor_answers_in_offline_mode(client, learner):
     assert response.json()["source"] == "fallback"
 
 
+def test_tutor_conversation_is_persisted_in_order(client, learner):
+    """The tutor is a conversation: both sides of each exchange are stored,
+    oldest first, so follow-ups can be resolved against earlier turns."""
+    learner_id = learner["learner"]["id"]
+    client.post("/api/tutor", json={"learner_id": learner_id, "message": "First question?"})
+    client.post("/api/tutor", json={"learner_id": learner_id, "message": "Second question?"})
+
+    messages = client.get(f"/api/tutor/{learner_id}/history").json()["messages"]
+    assert [m["role"] for m in messages[-4:]] == ["user", "model", "user", "model"]
+    assert messages[-4]["content"] == "First question?"
+    assert messages[-2]["content"] == "Second question?"
+
+
+def test_tutor_history_is_user_scoped(client, learner):
+    """History belongs to the learner's owner, like every other resource."""
+    assert client.get("/api/tutor/999999/history").status_code == 404
+
+
 def test_mindmap_generation(client, learner):
     response = client.post(
         "/api/mindmap",

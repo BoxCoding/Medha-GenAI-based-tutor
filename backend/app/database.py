@@ -49,6 +49,14 @@ CREATE TABLE IF NOT EXISTS behavior_events (
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS tutor_messages (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    learner_id  INTEGER NOT NULL REFERENCES learners(id) ON DELETE CASCADE,
+    role        TEXT NOT NULL,
+    content     TEXT NOT NULL,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS mindmap_cache (
     concept_id  INTEGER PRIMARY KEY REFERENCES concepts(id) ON DELETE CASCADE,
     content     TEXT NOT NULL,
@@ -114,6 +122,7 @@ CREATE INDEX IF NOT EXISTS idx_questions_quiz ON questions(quiz_id);
 CREATE INDEX IF NOT EXISTS idx_attempts_learner ON attempts(learner_id, concept_id);
 CREATE INDEX IF NOT EXISTS idx_behavior_learner ON behavior_events(learner_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_tutor_messages_learner ON tutor_messages(learner_id, id);
 """
 
 # Additive migrations for databases created by earlier versions.

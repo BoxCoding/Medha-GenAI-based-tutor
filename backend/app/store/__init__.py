@@ -5,11 +5,13 @@ All SQL lives in this package, always parameterized. Modules:
   learners       — learner profiles, concepts, knowledge states
   assessments    — quiz questions, attempts, answer history
   behavior       — engagement telemetry, learning profile, streaks
+  tutor          — tutor conversation history
   content_cache  — cached lessons and mind maps
 
 The package re-exports every public function, so callers use it as a single
 facade: `from .. import store; store.get_learner(...)`.
 """
+from . import tutor
 from .assessments import (
     attempt_history,
     get_quiz_questions,
@@ -41,6 +43,7 @@ from .learners import (
     list_learners,
     update_state,
 )
+from .tutor import recent_tutor_turns, record_tutor_turns
 from .users import (
     create_session,
     create_user,
@@ -74,8 +77,11 @@ __all__ = [
     "mark_answered",
     "recent_concept_accuracy",
     "recent_mistakes",
+    "recent_tutor_turns",
     "record_attempt",
     "record_behavior_events",
+    "record_tutor_turns",
     "save_questions",
+    "tutor",
     "update_state",
 ]

@@ -19,12 +19,43 @@ logger = logging.getLogger("medha.content")
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 _VALID_DIFFICULTIES = {"easy", "medium", "hard"}
 
-_TUTOR_SYSTEM = (
-    "You are Medhā, a patient adaptive-learning tutor. Ground every answer in the "
-    "learner's current mastery data provided in the prompt. Explain step by step, "
-    "use one concrete example, and end with a short check-for-understanding "
-    "question. Keep answers under 250 words. Use markdown."
-)
+_TUTOR_SYSTEM = """You are Medhā, a warm and patient human tutor, in the middle
+of an ongoing chat with one learner.
+
+Voice — sound like a friendly teacher sitting beside them:
+- Use contractions and everyday language. Speak to them as "you".
+- You are ALREADY mid-conversation: never greet them, never introduce
+  yourself, never say "Hello, I'm Medhā". Just answer, the way a person
+  picking up a conversation would.
+- Vary how you open each reply. Reacting first is natural ("Ah, that's the
+  part that trips everyone up" / "Good — that means the idea landed").
+- Be encouraging without being syrupy. No cheerleading filler.
+
+Length — match the question:
+- A small or factual question gets 1-3 sentences. Nothing more.
+- Go longer only when they ask for a full explanation or are clearly stuck,
+  and only then reach for numbered steps. Never use headings for a short
+  answer; most replies need no headings at all.
+
+Continuity — the conversation history is real:
+- If they say "that example", "again", "slower", "why", or "what about…",
+  they mean YOUR previous message. Build on exactly that. Never silently
+  swap in a different example.
+- Do not repeat an explanation you already gave; say it a new way instead.
+
+Grounding — you are given their per-concept mastery:
+- Pitch the depth to it, but do not recite it. Mentioning it is fine only
+  when it genuinely helps ("this builds on X, which you've nearly nailed").
+- Never dump percentages or list their whole mastery map back at them.
+
+Formatting:
+- Plain markdown, used sparingly. **Bold** for a key term at most.
+- Write math in plain text: O(log n), n^2, 1/2. NEVER LaTeX, never $ signs,
+  never \\( \\) — it renders as broken symbols in this chat.
+
+Ending:
+- Stop when the answer is done. Ask a follow-up question only when it truly
+  helps them think; never bolt one on out of habit."""
 
 
 def _slugify(name: str) -> str:
@@ -426,18 +457,37 @@ If no face is clearly visible, use label "neutral" with confidence 0."""
 
 
 async def tutor_answer(
-    message: str, topic: str, level: str, mastery_summary: str
+    message: str,
+    topic: str,
+    level: str,
+    mastery_summary: str,
+    history: list[dict[str, Any]] | None = None,
 ) -> tuple[str, str]:
-    """Answer a learner's question with their knowledge state as context."""
-    prompt = f"""Learner profile:
-- Topic being studied: {topic}
-- Self-reported level: {level}
-- Current mastery per concept:
-{mastery_summary}
+    """Answer a learner's question in the context of the ongoing conversation.
 
-Learner's question: {message}"""
+    The learner's profile rides in the system instruction (stable across the
+    chat) while `history` carries the actual dialogue, so the model resolves
+    references like "explain that again" against its own previous replies.
+    """
+    system = (
+        f"{_TUTOR_SYSTEM}\n\n"
+        f"Who you are talking to — background only, do not read it back:\n"
+        f"- Studying: {topic} (self-reported level: {level})\n"
+        f"- Mastery per concept:\n{mastery_summary}"
+    )
+    turns = list(history or [])
+    opener = (
+        "This is the first message of the conversation, so open naturally "
+        "without greeting them by name.\n\n"
+        if not turns
+        else ""
+    )
     try:
-        text = await generate_text(prompt, system=_TUTOR_SYSTEM)
+        # Slightly warmer sampling than generated coursework: conversation
+        # should not sound like the same template every turn.
+        text = await generate_text(
+            f"{opener}{message}", system=system, history=turns, temperature=0.85
+        )
         return text, "gemini"
     except LLMUnavailableError as exc:
         logger.info("Tutor fallback: %s", exc)

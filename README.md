@@ -49,7 +49,12 @@ live knowledge state to personalize every lesson, quiz, feedback message, and tu
 4. **Adaptive assessment** — quiz difficulty follows current mastery; graded **server-side**
    (the browser never sees correct answers before submitting).
 5. **Feedback** — per-question explanations, mastery before → after, next difficulty.
-6. **Tutor** — a chat tutor whose prompt is grounded in the learner's live mastery map.
+6. **Tutor** — a genuine multi-turn conversation, not one-shot Q&A. Turns are persisted
+   per learner and replayed to Gemini, so follow-ups resolve against what was actually
+   said ("use that same example again, but slower" continues the *same* example). The
+   persona is tuned to sound human: no re-introductions, reply length matched to the
+   question (a yes/no question gets "Yes."), plain-text math instead of LaTeX, and the
+   learner's mastery map as background context rather than something recited back.
 7. **Prerequisite gating** — concepts stay locked until their prerequisites reach 55% mastery.
 
 ## Beyond quizzes: multi-signal adaptation
@@ -128,6 +133,7 @@ medha/
 │       │   ├── learners.py      #   learner profiles, concepts, knowledge states
 │       │   ├── assessments.py   #   questions, attempts, answer history
 │       │   ├── behavior.py      #   engagement telemetry, pace signals, streaks
+│       │   ├── tutor.py         #   tutor conversation history
 │       │   └── content_cache.py #   cached lessons + mind maps
 │       ├── bkt.py               # Bayesian Knowledge Tracing + forgetting decay
 │       ├── adaptive.py          # policy: recommendations, pace profile, difficulty
@@ -172,7 +178,8 @@ clean; `pytest` runs 52 deterministic offline tests. CI enforces all three.
 | `POST` | `/api/behavior/events` | Batched focus/idle/response telemetry |
 | `POST` | `/api/behavior/expression` | Opt-in webcam frame → Gemini engagement label |
 | `GET` | `/api/behavior/{id}/summary` | Aggregated engagement snapshot |
-| `POST` | `/api/tutor` | Doubt-solving grounded in the mastery map |
+| `POST` | `/api/tutor` | Multi-turn tutor chat, grounded in the mastery map |
+| `GET` | `/api/tutor/{id}/history` | Past turns, so the chat survives a reload |
 | `GET` | `/api/health` | LLM status (drives the UI mode badge) |
 
 All learner-scoped routes require a signed-in session and return 404 for any

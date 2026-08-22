@@ -27,9 +27,21 @@ class LLMUnavailableError(Exception):
     """Raised when Gemini cannot be reached or returns an unusable response."""
 
 
-async def generate_text(prompt: str, system: str | None = None) -> str:
-    """Generate free-form text (markdown) from Gemini."""
-    return await _generate(prompt, system=system, json_mode=False)
+async def generate_text(
+    prompt: str,
+    system: str | None = None,
+    history: list[dict[str, Any]] | None = None,
+    temperature: float | None = None,
+) -> str:
+    """Generate free-form text (markdown) from Gemini.
+
+    `history` replays earlier conversation turns ({"role": "user"|"model",
+    "content": str}) so multi-turn chat resolves references to what was
+    already said.
+    """
+    return await _generate(
+        prompt, system=system, json_mode=False, history=history, temperature=temperature
+    )
 
 
 async def generate_json(
@@ -56,6 +68,8 @@ async def _generate(
     json_mode: bool,
     image_base64: str | None = None,
     image_mime: str = "image/jpeg",
+    history: list[dict[str, Any]] | None = None,
+    temperature: float | None = None,
 ) -> str:
     if not settings.llm_enabled:
         raise LLMUnavailableError("no API key configured or offline mode active")
@@ -63,9 +77,23 @@ async def _generate(
     parts: list[dict[str, Any]] = [{"text": prompt}]
     if image_base64:
         parts.append({"inline_data": {"mime_type": image_mime, "data": image_base64}})
+
+    contents: list[dict[str, Any]] = [
+        {
+            "role": turn["role"] if turn.get("role") == "model" else "user",
+            "parts": [{"text": str(turn.get("content", ""))}],
+        }
+        for turn in (history or [])
+        if str(turn.get("content", "")).strip()
+    ]
+    contents.append({"role": "user", "parts": parts})
+
     body: dict[str, Any] = {
-        "contents": [{"role": "user", "parts": parts}],
-        "generationConfig": {"temperature": 0.6, "maxOutputTokens": 4096},
+        "contents": contents,
+        "generationConfig": {
+            "temperature": 0.6 if temperature is None else temperature,
+            "maxOutputTokens": 4096,
+        },
     }
     if system:
         body["systemInstruction"] = {"parts": [{"text": system}]}
